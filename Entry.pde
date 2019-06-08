@@ -8,6 +8,7 @@ int setInd;
 
 
 int distSumMax;
+
 float heightAvgMax;
 
 public void calcDistSum(){
@@ -103,8 +104,7 @@ public class Entry{
     this.y = y;
     this.z = z;
     
-  //this.xol = convertColor(100.0 * i / len);
-    this.xol = cols[2];// TODO this has to be changed
+    this.xol = cols[2];// TODO this has to be changed maybe?
   }
   
   
@@ -126,7 +126,6 @@ public class Entry{
   public float z(){
     return translate(z);
   }
-  
   
   
   
@@ -159,7 +158,6 @@ public class Entry{
       -ySize * this.distSum / distSumMax
       );
     
-      
     stroke(cols[0]);
     line(xSize * last.dist() / maxCoord,
       -ySize * last.heightAvg / 255.0,

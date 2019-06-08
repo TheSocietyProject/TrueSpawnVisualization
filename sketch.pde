@@ -58,7 +58,6 @@ float[] pos = new float[]{
 };
 
 
-
 float minDist, maxDist,
       minY, maxY,
       nDist, nY,
@@ -77,6 +76,7 @@ void settings(){
 void setup(){
   // 1920 1080
   // 960 540
+  
   initChangeable();
   
   
@@ -169,6 +169,7 @@ public void loadCoords(){
     sp = info[i].split(" ");
     
     e = new Entry(sp[0], Float.parseFloat(sp[1]), Float.parseFloat(sp[2]), Float.parseFloat(sp[3]), i);
+
     add(e);
     
     dist[i] = e.dist();
@@ -217,6 +218,7 @@ void draw(){
   tint(255, transparency);
   image(bg, -translate(bg.width / 2.0 - xOffset), -translate(bg.height / 2.0 - zOffset), translate(bg.width), translate(bg.height));
   //renderCross();
+
   //rectMode(CENTER);
   
   renderPos();
@@ -229,6 +231,7 @@ void draw(){
   float txtPos = 20;
   
   translate(txtPos, 0);
+
   
   fill(255);
   
@@ -301,8 +304,21 @@ void draw(){
   yPos = 8.0 * height / 9.0;
   fill(cols[1]);
   txt = "how many respawns with the same distance from 0 0 with a range of " + distSumLen;
+
   text(txt, xPos, yPos);
   yPos += 2.0 * textAscent();
+  
+  txt = "most respawns with the same distance from 0 0: " + distSumMax;
+  text(txt, xPos, yPos);
+  
+
+  
+  
+  translate(-txtPos, 0, 0);
+  
+  translate(width / 2.0, height - height / 32.0, 0);
+  
+  renderGraph(width / 2.0 - txtPos, height / 1.1);
   
   
   fill(cols[0]);
@@ -336,8 +352,6 @@ void draw(){
     saveFrame(path + "result.png");
   }
 }
-
-
 
 
 public void renderPos(){
