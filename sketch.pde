@@ -1,17 +1,34 @@
 
-/*
-  // TODO load coords
-  // TODO set maxCoord to maxCoord in pic
-  -maybe rem cross?
+
+public void initChangeable(){
+  maxCoord = 2124 + 128;// TODO set to max block of pic
   
-*/
+  
+}
+
+float distSumLen = 32; // always changeable
+// 32 was good for 1024. 64 is good for 2048?
 
 
+float transparency = 200;
+
+
+int[] cols = new int[]{
+  color(231, 149, 22),
+  color(96, 96, 200),
+  color(121, 35, 147)
+};
+
+
+
+
+//------------
 
 public String getPath(){
   return android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).getParentFile().getAbsolutePath() + 
   "/CODING/trueSpawn/";
 }
+
 
 
 
@@ -21,7 +38,7 @@ String path = "";
 
 
 float zoom;
-float yTranslate;
+float yTranslate, xTranslate;
 
 PImage bg;
 
@@ -32,40 +49,46 @@ boolean line = true;
 
 float maxCoord;
 
-float[] xCoord, zCoord, yCoord;
+int len;
+
 
 float[] pos = new float[]{
   0,
   100
 };
 
-int[] cols = new int[]{
-  color(248, 248, 100, 128),
-  color(255, 100, 100, 255)
-};
 
-float minX, minY, minZ, maxX, maxY, maxZ,
-      nDist, nY,  distMedian, yMedian,
+
+float minDist, maxDist,
+      minY, maxY,
+      nDist, nY,
+      distMedian, yMedian,
       xMid, zMid;
       
 int n;
 
+void settings(){
+  //size((int) (0.6 * 1920), (int) (0.6 * 1080), P3D);
+  fullScreen();
+  
+}
+
 
 void setup(){
-  //fullScreen();
-  size(displayWidth, displayWidth, P3D);
-  halfW = width / 2.0;
+  // 1920 1080
+  // 960 540
+  initChangeable();
+  
+  
+  halfW = height / 2.0;
   
   path = getPath();
   
+  textSize(height / 55.0);
+  
+  // in case the bg isnt centered
   xOffset = 0 * 16.0; // x chunks
   zOffset = 0 * 16.0;
-  
-  // was 3, -5.5
-  
-  
-  //xOffset = translate(xOffset);
-  //zOffset = translate(zOffset);
   
   try{
     bg = loadImage(path + "bg.png");
@@ -73,37 +96,46 @@ void setup(){
     bg = null;
     println("error");
   }
+  
+  if(bg == null){
+    try{
+      bg = loadImage(path + "map.png");
+    } catch(Exception e){
+      bg = null;
+      println("error");
+    }
+  }
+  
   if(bg == null){
     bg = createImage(1, 1, RGB);
   }
   
-  maxCoord = 1000;// TODO set to max block of pic
   
-  zoom = halfW / 3.0; // 3.0
-  yTranslate = 7.0 * halfW / 9.0;
+  zoom = halfW / 2.0; // 3.0
+  //yTranslate = 7.0 * halfW / 9.0;
+  //xTranslate = halfW / 1.3;
   
-  //loadRandomCoords();
+  yTranslate = halfW;
+  xTranslate = halfW;
+ // zoom = 0;
   
   loadCoords();
   
   
-  noLoop();
+ // noLoop();
 }
 
 
 public void prepareMinMax(){
-  maxX = 0;
+  maxDist = 0;
   maxY = 0;
-  maxZ = 0;
   
-  minX = maxCoord;
+  minDist = maxCoord;
   minY = 256;
-  minZ = maxCoord;
   
   nDist = 0;
   nY = 0;
   n = 0;
-  
   
   xMid = 0;
   zMid = 0;
@@ -122,119 +154,121 @@ public void loadCoords(){
     info = new String[0];
   }
   
-  int len = info.length;
-  println(len);
-  xCoord = new float[len];
-  zCoord = new float[len];
-  yCoord = new float[len];
+  len = info.length;
+  println("file length: " + len);
+  entries = new Entry[len];
+  setInd = 0;
   
   float[] dist = new float[len];
+  float[] yLvl = new float[len];
+  
+  Entry e;
   
   String[] sp;
   for(int i = 0; i < len; i ++){
     sp = info[i].split(" ");
-    xCoord[i] = Float.parseFloat(sp[1]);
-    yCoord[i] = Float.parseFloat(sp[2]);
-    zCoord[i] = Float.parseFloat(sp[3]);
     
-    dist[i] = dist(xCoord[i], zCoord[i]);
+    e = new Entry(sp[0], Float.parseFloat(sp[1]), Float.parseFloat(sp[2]), Float.parseFloat(sp[3]), i);
+    add(e);
     
-    minMax(xCoord[i], yCoord[i], zCoord[i]);
-    xMid += xCoord[i];
-    zMid += zCoord[i];
+    dist[i] = e.dist();
+    yLvl[i] = e.y;
+    
+    nDist += e.dist();
+    nY += e.y;
+    
+    n ++;
+    
+    xMid += e.x; // needs orig scale
+    zMid += e.z;
     
   }
   
-  // TODO make max and stuff here...
+  calcDistSum();
   
-  yMedian = sort(yCoord)[yCoord.length / 2];
-  distMedian = sort(dist)[dist.length / 2];
+  nDist /= (float) n;
+  nY /= (float) n;
   
-  xMid /= n;
-  zMid /= n;
+  yLvl = sort(yLvl);
+  minY = yLvl[0];
+  yMedian = yLvl[yLvl.length / 2];
+  maxY = yLvl[yLvl.length - 1];
+  
+  dist = sort(dist);
+  minDist = dist[0];
+  distMedian = dist[dist.length / 2];
+  maxDist = dist[dist.length - 1];
+  
+  xMid /= (float) n;
+  zMid /= (float) n;
   
 }
 
-public void loadRandomCoords(){
-  int len = 1000;
-  xCoord = new float[len];
-  zCoord = new float[len];
-  yCoord = new float[len];
-  float r;
-  float alpha;
-  for(int i = 0; i < xCoord.length; i ++){
-    alpha = random(360);
-    r = random(maxCoord);
-    
-    xCoord[i] = r * cos(alpha);
-    zCoord[i] = r * sin(alpha);
-    
-    yCoord[i] = random(256.0 * (maxCoord - r) / maxCoord);
-  }
-}
 
 boolean first;
 
 void draw(){
   background(0);
+  translate(xTranslate, yTranslate);
   
+  //rotateX(PI / 8.0); // was PI/8.0
+  //rotateZ(PI / 32.0);
   
-  
-  translate(halfW, yTranslate, -zoom);
-  
-  rotateX(PI / 8.0); // was PI/8.0
-  rotateZ(PI / 32.0);
-  
-  //println(xOffset + " " + maxCoord);
+  tint(255, transparency);
   image(bg, -translate(bg.width / 2.0 - xOffset), -translate(bg.height / 2.0 - zOffset), translate(bg.width), translate(bg.height));
-  renderCross();
-  rectMode(CENTER);
-  
-  
+  //renderCross();
+  //rectMode(CENTER);
   
   renderPos();
   
   
-  rotateZ(-PI / 32.0);
-  rotateX(-PI / 8.0);
-  translate(-halfW, -yTranslate, zoom);
+  //rotateZ(-PI / 32.0);
+  //rotateX(-PI / 8.0);
+  translate(-xTranslate, -yTranslate);
   
+  float txtPos = 20;
+  
+  translate(txtPos, 0);
   
   fill(255);
   
   String txt;
-  float xPos = halfW / 12.0;
+  
+  
   float yPos = 2.0 * textAscent();
   
   
-  txt = "distance to 0 0";
-  text(txt, xPos, yPos);
-  yPos += 2.0 * textAscent();
-  
-  txt = "min: " + dist(minX, minZ);
-  text(txt, xPos, yPos);
-  yPos += 2.0 * textAscent();
-  
-  txt = "avg: " + (nDist / n);
-  text(txt, xPos, yPos);
-  yPos += 2.0 * textAscent();
-  
-  txt = "median: " + distMedian;
-  text(txt, xPos, yPos);
-  yPos += 2.0 * textAscent();
-  
-  txt = "max: " + dist(maxX, maxZ);
-  text(txt, xPos, yPos);
-  yPos += 4.0 * textAscent();
-  
-  
   txt = "middle (x: " + xMid + " z: " + zMid + ")";
-  text(txt, xPos, yPos);
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
   
   txt = "respawns: " + n;
-  text(txt, xPos, yPos);
+  text(txt, 0, yPos);
+  yPos += 4.0 * textAscent();
+  
+  
+  
+  txt = "distance to 0 0";
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
+  
+  txt = "min: " + minDist; // entries[0].dist()
+  text(txt, 0, yPos);
+  yPos += 2.0 * textAscent();
+  
+  txt = "avg: " + nDist;
+  text(txt, 0, yPos);
+  yPos += 2.0 * textAscent();
+  
+  txt = "median: " + distMedian;
+  text(txt, 0, yPos);
+  yPos += 2.0 * textAscent();
+  
+  txt = "max: " + maxDist;
+  text(txt, 0, yPos);
+  yPos += 4.0 * textAscent();
+  
+  
   
   
   
@@ -242,59 +276,79 @@ void draw(){
   
   
   txt = "y coordinate";
-  text(txt, xPos, yPos);
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
   
   txt = "min: " + minY;
-  text(txt, xPos, yPos);
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
   
-  txt = "avg: " + (nY / n);
-  text(txt, xPos, yPos);
+  txt = "avg: " + nY;
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
   
   txt = "median: " + yMedian;
-  text(txt, xPos, yPos);
+  text(txt, 0, yPos);
   yPos += 2.0 * textAscent();
   
   txt = "max: " + maxY;
+  text(txt, 0, yPos);
+  yPos += 2.0 * textAscent();
+  
+  
+  
+  float xPos = width / 2.0;
+  yPos = 8.0 * height / 9.0;
+  fill(cols[1]);
+  txt = "how many respawns with the same distance from 0 0 with a range of " + distSumLen;
   text(txt, xPos, yPos);
   yPos += 2.0 * textAscent();
   
   
+  fill(cols[0]);
+  txt = "height and average height relative to distance with same range as above";
+  text(txt, xPos, yPos);
+  yPos += 2.0 * textAscent();
+  /*
+  txt = "most respawns with about the same distance from 0 0: " + distSumMax;
+  text(txt, xPos, yPos);
+  
+*/
+  
+  
+  translate(-txtPos, 0, 0);
+  
+  translate(width / 2.0 + 1.5 * txtPos, height - height / 32.0);
+  
+  renderGraph(width / 2.0, height / 1.1);
+  //------------
+  
   if(mousePressed){
-    //loadRandomCoords();
-    maxCoord += mouseX - width / 2.0;
+    // for debugging
+    distSumLen += (mouseX - width / 2.0) / 4.0;
+    calcDistSum();
   }
   
   
   if(!first){
     first = true;
+    // to export the resulting img
     saveFrame(path + "result.png");
   }
 }
 
+
+
+
 public void renderPos(){
-  lastX = 0;
-  lastY = 0;
-  lastZ = 0;
-  beginShape(LINES);
-  for(int i = 0; i < xCoord.length && i < zCoord.length; i ++){
-    col(convertColor(100.0 * i / xCoord.length));
-    //renderPos(convertColor(100.0 * i / xCoord.length), xCoord[i], zCoord[i]);
-    renderVertex(xCoord[i], yCoord[i], zCoord[i]);
-    //vertex(x*scl, y*scl, terrain[x][y]);
-    //vertex(x*scl, (y+1)*scl, terrain[x][y+1]);
-    
-    last(i);
-  }
   
-  endShape();
+  //beginShape(LINES);
+  
+  renderVertex();
+  
+  
+ // endShape();
 }
-
-
-float lastX, lastY, lastZ;
-
 
 public void col(int col){
   fill(col);
@@ -303,64 +357,7 @@ public void col(int col){
 
 
 
-public void renderVertex(float x, float y, float z){
-  
-  //vertex(lastX, lastZ, lastY);
-  x = translate(x);
-  z = translate(z);
-  y = translate(y) / 2.0;
-  vertex(x, z, 0);
-  vertex(x, z, y);
-  
-}
 
-
-public void minMax(float xC, float yC, float zC){
-  if(dist(xC, zC) < dist(minX, minZ)){
-    minX = xC;
-    minZ = zC;
-  }
-  
-  if(yC < minY){
-    minY = yC;
-  }
-  
-  if(dist(xC, zC) > dist(maxX, maxZ)){
-    maxX = xC;
-    maxZ = zC;
-  }
-  
-  if(yC > maxY){
-    maxY = yC;
-  }
-  
-  
-  nDist += dist(xC, zC);
-  nY += yC;
-  
-  n ++;
-}
-
-
-public void last(int i){
-  lastX = translate(xCoord[i]);
-  lastY = translate(yCoord[i]);
-  lastZ = translate(zCoord[i]);
-}
-
-
-
-public void renderCross(){
-  stroke(convertColor(100), 128);
-  
-  float size = 1000;
-  line(-translate(size), 0, translate(size), 0);
-  line(0, -translate(size), 0, translate(size));
-  
-  fill(256);
-  //ellipse(xOffset, zOffset, translate(2.0 * size), translate(2.0 * size));
-  
-}
 
 public int convertColor(float val){
   return convertColor(val, pos, cols);
@@ -385,9 +382,7 @@ public int convertColor(float value, float[] pos, int[] cols){
 }
 
 
-public float dist(float a, float b){
-  return sqrt(a * a + b * b);
-}
+
 
 public float translate(float pos){
   if(maxCoord == 0){
