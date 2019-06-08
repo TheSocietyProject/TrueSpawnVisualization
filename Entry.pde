@@ -9,15 +9,24 @@ int setInd;
 
 int distSumMax;
 
+float heightAvgMax;
+
 public void calcDistSum(){
   distSumMax = 0;
-  int cur;
+  heightAvgMax = 0;
+  HdRv cur;
   for(int i = 0; i < entries.length; i ++){
     cur = entries[i].calcDistSumLen(i, distSumLen / 2.0);
-    if(cur > distSumMax){
-      distSumMax = cur;
+    if(cur.sum > distSumMax){
+      distSumMax = cur.sum;
     }
+    
+    if(cur.heightAvg > heightAvgMax)
+      heightAvgMax = cur.heightAvg;
+    
   }
+  
+  
 }
 
 public void renderGraph(float xSize, float ySize){
@@ -37,7 +46,7 @@ public void renderGraph(float xSize, float ySize){
 public void renderVertex(){
   
   for(int i = 0; i < entries.length; i ++){
-    entries[i].renderVertex(i);
+    entries[i].renderVertex();
   }
 }
 
@@ -82,18 +91,23 @@ public void add(Entry toAdd){
 public class Entry{
   
   public int distSum;
+  public float heightAvg;
   
   public String time;
   public float x, y, z;
   
+  int xol;
   
-  public Entry(String time, float x, float y, float z){
+  public Entry(String time, float x, float y, float z, int i){
     this.time = time;
     this.x = x;
     this.y = y;
     this.z = z;
     
+    this.xol = cols[2];// TODO this has to be changed maybe?
   }
+  
+  
   
   
   public float dist(){
@@ -119,12 +133,12 @@ public class Entry{
   
   
   
-  
-  public void renderVertex(int i){
-    col(convertColor(100.0 * i / len));
-    
-    vertex(x(), z(), 0);
-    vertex(x(), z(), y() / 2.0);
+  public void renderVertex(){
+    col(xol);
+    float size = 0.75;
+    ellipse(x(), z(), size, size);
+    //vertex(x(), z(), 0);
+    //vertex(x(), z(), y() / 2.0);
     
     
   }
@@ -144,46 +158,64 @@ public class Entry{
       -ySize * this.distSum / distSumMax
       );
     
+    stroke(cols[0]);
+    line(xSize * last.dist() / maxCoord,
+      -ySize * last.heightAvg / 255.0,
+      xSize * this.dist() / maxCoord,
+      -ySize * this.heightAvg / 255.0
+      );
+    
+      
+    
   }
   
   public void renderPoint(float xSize, float ySize){
-    stroke(cols[0]);
-    fill(cols[0]);
-    ellipse(xSize * this.dist() / maxCoord, -ySize * this.y / 255.0, 1, 1);
+    col(cols[0]);
+    point(xSize * this.dist() / maxCoord, -ySize * this.y / 255.0);
     // smh y has to be multiplied by 2...
   }
   
  
  
- public int calcDistSumLen(int i, float dist){
-    int rV = addDistSum(false, i, this.dist() - dist, 0);
+ public HdRv calcDistSumLen(int i, float dist){
+    HdRv rV = addDistSum(false, i, this.dist() - dist, new HdRv());
     //if(i + 1 < entries.length)
     rV = entries[i].addDistSum(true, i, this.dist() + dist, rV);
+    rV.heightAvg /= rV.sum;
     
-    rV -= 3; // so 0 is the lowest
-    this.distSum = rV;
+    rV.sum -= 3; // so 0 is the lowest
+    this.distSum = rV.sum;
+    this.heightAvg = rV.heightAvg;
     
     return rV;
   }
   
-  public int addDistSum(boolean bigger, int i, float maxDist, int sum){
-    sum ++;
+  public HdRv addDistSum(boolean bigger, int i, float maxDist, HdRv rV){
+    rV.sum ++;
+    rV.heightAvg += y;
     if(bigger){
       i ++;
       if(this.dist() > maxDist || i >= entries.length)
-        return sum;
+        return rV;
     } else {
       i --;
       if(this.dist() < maxDist || i < 0)
-        return sum;
+        return rV;
     }
     
     
-    return entries[i].addDistSum(bigger, i, maxDist, sum);
+    return entries[i].addDistSum(bigger, i, maxDist, rV);
   }
   
+}
+
+public class HdRv{
   
+  public HdRv(){
+    sum = 0;
+    heightAvg = 0;
+  }
   
-  
-  
+  int sum;
+  float heightAvg;
 }

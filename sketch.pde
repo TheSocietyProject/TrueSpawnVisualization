@@ -1,5 +1,28 @@
 
 
+public void initChangeable(){
+  maxCoord = 2124 + 128;// TODO set to max block of pic
+  
+  
+}
+
+float distSumLen = 32; // always changeable
+// 32 was good for 1024. 64 is good for 2048?
+
+
+float transparency = 200;
+
+
+int[] cols = new int[]{
+  color(231, 149, 22),
+  color(96, 96, 200),
+  color(121, 35, 147)
+};
+
+
+
+
+//------------
 
 public String getPath(){
   return android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).getParentFile().getAbsolutePath() + 
@@ -8,7 +31,6 @@ public String getPath(){
 
 
 
-float distSumLen = 64;
 
 float xOffset, zOffset;
 
@@ -35,10 +57,6 @@ float[] pos = new float[]{
   100
 };
 
-int[] cols = new int[]{
-  color(248, 248, 100, 128),
-  color(255, 100, 100, 255)
-};
 
 float minDist, maxDist,
       minY, maxY,
@@ -50,7 +68,7 @@ int n;
 
 void settings(){
   //size((int) (0.6 * 1920), (int) (0.6 * 1080), P3D);
-  fullScreen(P3D);
+  fullScreen();
   
 }
 
@@ -58,6 +76,9 @@ void settings(){
 void setup(){
   // 1920 1080
   // 960 540
+  
+  initChangeable();
+  
   
   halfW = height / 2.0;
   
@@ -75,15 +96,27 @@ void setup(){
     bg = null;
     println("error");
   }
+  
+  if(bg == null){
+    try{
+      bg = loadImage(path + "map.png");
+    } catch(Exception e){
+      bg = null;
+      println("error");
+    }
+  }
+  
   if(bg == null){
     bg = createImage(1, 1, RGB);
   }
   
-  maxCoord = 1000;// TODO set to max block of pic
   
   zoom = halfW / 2.0; // 3.0
-  yTranslate = 7.0 * halfW / 9.0;
-  xTranslate = halfW / 1.3;
+  //yTranslate = 7.0 * halfW / 9.0;
+  //xTranslate = halfW / 1.3;
+  
+  yTranslate = halfW;
+  xTranslate = halfW;
  // zoom = 0;
   
   loadCoords();
@@ -135,7 +168,8 @@ public void loadCoords(){
   for(int i = 0; i < len; i ++){
     sp = info[i].split(" ");
     
-    e = new Entry(sp[0], Float.parseFloat(sp[1]), Float.parseFloat(sp[2]), Float.parseFloat(sp[3]));
+    e = new Entry(sp[0], Float.parseFloat(sp[1]), Float.parseFloat(sp[2]), Float.parseFloat(sp[3]), i);
+
     add(e);
     
     dist[i] = e.dist();
@@ -176,25 +210,28 @@ boolean first;
 
 void draw(){
   background(0);
-  translate(xTranslate, yTranslate, -zoom);
+  translate(xTranslate, yTranslate);
   
-  rotateX(PI / 8.0); // was PI/8.0
-  rotateZ(PI / 32.0);
+  //rotateX(PI / 8.0); // was PI/8.0
+  //rotateZ(PI / 32.0);
   
+  tint(255, transparency);
   image(bg, -translate(bg.width / 2.0 - xOffset), -translate(bg.height / 2.0 - zOffset), translate(bg.width), translate(bg.height));
-  renderCross();
+  //renderCross();
+
   //rectMode(CENTER);
   
   renderPos();
   
   
-  rotateZ(-PI / 32.0);
-  rotateX(-PI / 8.0);
-  translate(-xTranslate, -yTranslate, zoom);
+  //rotateZ(-PI / 32.0);
+  //rotateX(-PI / 8.0);
+  translate(-xTranslate, -yTranslate);
   
   float txtPos = 20;
   
-  translate(txtPos, 0, 0);
+  translate(txtPos, 0);
+
   
   fill(255);
   
@@ -265,7 +302,9 @@ void draw(){
   
   float xPos = width / 2.0;
   yPos = 8.0 * height / 9.0;
-  txt = "how many respawns with the same distance from 0 0 with a range of +/- " + (distSumLen / 2.0);
+  fill(cols[1]);
+  txt = "how many respawns with the same distance from 0 0 with a range of " + distSumLen;
+
   text(txt, xPos, yPos);
   yPos += 2.0 * textAscent();
   
@@ -282,6 +321,24 @@ void draw(){
   renderGraph(width / 2.0 - txtPos, height / 1.1);
   
   
+  fill(cols[0]);
+  txt = "height and average height relative to distance with same range as above";
+  text(txt, xPos, yPos);
+  yPos += 2.0 * textAscent();
+  /*
+  txt = "most respawns with about the same distance from 0 0: " + distSumMax;
+  text(txt, xPos, yPos);
+  
+*/
+  
+  
+  translate(-txtPos, 0, 0);
+  
+  translate(width / 2.0 + 1.5 * txtPos, height - height / 32.0);
+  
+  renderGraph(width / 2.0, height / 1.1);
+  //------------
+  
   if(mousePressed){
     // for debugging
     distSumLen += (mouseX - width / 2.0) / 4.0;
@@ -297,16 +354,14 @@ void draw(){
 }
 
 
-
-
 public void renderPos(){
   
-  beginShape(LINES);
+  //beginShape(LINES);
   
   renderVertex();
   
   
-  endShape();
+ // endShape();
 }
 
 public void col(int col){
@@ -317,15 +372,6 @@ public void col(int col){
 
 
 
-public void renderCross(){
-  stroke(convertColor(100), 128);
-  
-  float size = 1000;
-  line(-translate(size), 0, translate(size), 0);
-  line(0, -translate(size), 0, translate(size));
-  
-  
-}
 
 public int convertColor(float val){
   return convertColor(val, pos, cols);
